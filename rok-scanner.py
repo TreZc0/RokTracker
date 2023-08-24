@@ -38,11 +38,16 @@ import string
 import time
 import tesserocr
 import rok_ui_positions as rok_ui
+import json
+import os
 from tesserocr import PyTessBaseAPI, PSM, OEM
 from PIL import Image
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
-    filename="rok-scanner.log",
+    filename="scanner.log",
     encoding="utf-8",
     format="%(asctime)s %(module)s %(levelname)s %(message)s",
     level=logging.DEBUG,
@@ -53,7 +58,11 @@ run_id = ""
 start_date = ""
 new_scroll = True
 scan_abort = False
-bluestacks_device_name = "RoK Tracker"
+bluestacks_device_name = "bst.instance.Nougat64"
+
+if "devicename" in os.environ:
+    bluestacks_device_name = os.getEnv("devicename")
+    
 scan_times = []
 
 
@@ -70,14 +79,14 @@ def get_bluestacks_port():
     try:
         dummy = "AmazingDummy"
         with open(
-            "S:\\Other\\BlueStacks\\BlueStacks_nxt\\bluestacks.conf"
+            "C:\\ProgramData\\BlueStacks_nxt\\bluestacks.conf"
         ) as config_file:
             file_content = "[" + dummy + "]\n" + config_file.read()
         config = configparser.RawConfigParser()
         config.read_string(file_content)
 
         for key, value in config.items(dummy):
-            if value == f'"{bluestacks_device_name}"':
+            if key == f'{bluestacks_device_name.lower()}.status.adb_port':
                 key_port = key.replace("display_name", "status.adb_port")
                 port = config.get(dummy, key_port)
                 return int(port.strip('"'))
@@ -225,7 +234,7 @@ def governor_scan(
         f"input tap 690 " + str(get_gov_position(current_player, inactive_players)),
         port,
     )
-    time.sleep(2 + random_delay())
+    time.sleep(1 + random_delay())
 
     gov_info = False
     count = 0
@@ -269,7 +278,7 @@ def governor_scan(
                 port,
             )
             count += 1
-            time.sleep(2 + random_delay())
+            time.sleep(1 + random_delay())
             if count == 10:
                 cont = Confirm.ask("Could not find user, retry?", default=True)
                 if cont:
@@ -293,7 +302,7 @@ def governor_scan(
             logging.log(logging.INFO, "Name copy failed, retying")
             copy_try = copy_try + 1
 
-    time.sleep(1.5 + random_delay())
+    time.sleep(0.8 + random_delay())
 
     secure_adb_screencap(port).save("gov_info.png")
     image = cv2.imread("gov_info.png")
@@ -550,7 +559,7 @@ def governor_scan(
         "rss_assistance": gov_rss_assistance,
         "rss_gathered": gov_rss_gathered,
         "helps": gov_helps,
-        "alliance": alliance_name,
+        "alliance": alliance_name.rstrip(),
         "inactives": inactive_players,
     }
 
@@ -616,6 +625,8 @@ def scan(
     sheet1["P1"].font = font
     sheet1["Q1"].font = font
 
+
+
     # Counter for fails
     inactive_players = 0
 
@@ -629,6 +640,22 @@ def scan(
         amount = amount + j
     # The loop in TOP XXX Governors in kingdom - It works both for power and killpoints Rankings
     # MUST have the tab opened to the 1st governor(Power or Killpoints)
+
+    if resume:
+        file_name_prefix = "NEXT"
+    else:
+        file_name_prefix = "TOP"
+        
+    # Set up JSON
+    base_info = {
+        "date":str(datetime.date.today()),
+        "kingdom": kingdom,
+        "amount": str(amount - j),
+        "job_profile": "Full Time",
+        "players": []
+    }        
+    with open("./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
+        json.dump(base_info, outfile)
 
     stop = False
     last_two = False
@@ -860,7 +887,8 @@ def scan(
         else:
             file_name_prefix = "TOP"
         wb.save(
-            file_name_prefix
+            "./scans/"
+            + file_name_prefix
             + str(amount - j)
             + "-"
             + str(datetime.date.today())
@@ -869,13 +897,16 @@ def scan(
             + f"-[{run_id}]"
             + ".xlsx"
         )
+        
+        append_json(governor, "./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}].json")
 
     if resume:
         file_name_prefix = "NEXT"
     else:
         file_name_prefix = "TOP"
     wb.save(
-        file_name_prefix
+        "./scans/"
+        + file_name_prefix
         + str(amount - j)
         + "-"
         + str(datetime.date.today())
@@ -889,13 +920,20 @@ def scan(
     kill_adb()  # make sure to clean up adb server
     return
 
+def append_json(new_data, filename):
+    with open(filename,'r+', encoding="utf-8") as file:
+          # First we load existing data into a dict.
+        file_data = json.load(file)
+        # Join new_data with file_data inside emp_details
+        file_data["players"].append(new_data)
+        # Sets file's current position at offset.
+        file.seek(0)
+        # convert back to json.
+        json.dump(file_data, file, indent = 2, ensure_ascii=False)
 
 def main():
     signal.signal(signal.SIGINT, stopHandler)
-    console.print(
-        "Tesseract languages available: "
-        + str(tesserocr.get_languages("./deps/tessdata-main"))
-    )
+    
     global run_id
     global start_date
     global new_scroll
@@ -904,20 +942,14 @@ def main():
     start_date = datetime.date.today()
     console.print(f"The UUID of this scan is [green]{run_id}[/green]", highlight=False)
 
-    bluestacks_device_name = Prompt.ask(
-        "Name of your bluestacks instance", default=bluestacks_device_name
-    )
-    bluestacks_port = IntPrompt.ask("Adb port of device", default=get_bluestacks_port())
+    bluestacks_device_name = bluestacks_device_name
+    bluestacks_port = get_bluestacks_port()
     kingdom = Prompt.ask("Kingdom name (used for file name)", default="KD")
     scan_amount = IntPrompt.ask("People to scan", default=600)
-    resume_scan = Confirm.ask("Resume scan", default=False)
-    new_scroll = Confirm.ask(
-        "Use the new scrolling method (more accurate, but might not work)", default=True
-    )
-    track_inactives = Confirm.ask("Track inactives (via screenshot)", default=False)
-    reconstruct_fails = Confirm.ask(
-        "Try to reconstruct kills via killpoints", default=True
-    )
+    resume_scan = False
+    new_scroll = True
+    track_inactives = True
+    reconstruct_fails = True
 
     scan(
         bluestacks_port,
