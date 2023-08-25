@@ -969,7 +969,7 @@ def upload_to_ftp(kingdom,filepath):
         try:
             with open(upload_file, 'rb') as file:
                 print(f'Uploading file {upload_file}')
-                ftps.storbinary(f'STOR {upload_file}', file)
+                ftps.storbinary(f'STOR {os.path.basename(upload_file)}', file)
         except ftplib.all_errors as e:
             print(f'Error uploading file {upload_file}: {e}')
             return
