@@ -68,7 +68,7 @@ if ("ftp_upload_host" in os.environ):
     ftp_upload_host = os.getenv("ftp_upload_host") # note: TLS ftp required
     ftp_upload_port = os.getenv("ftp_upload_port")
     ftp_upload_user = os.getenv("ftp_upload_user")
-    ftp_upload_pass = os.getenv("ftp_upload_user")
+    ftp_upload_pass = os.getenv("ftp_upload_pass")
 
 if "device_name" in os.environ:
     bluestacks_device_name = os.getenv("device_name")
