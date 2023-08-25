@@ -912,18 +912,20 @@ def scan(
     else:
         file_name_prefix = "TOP"
 
-    filename = "./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}]"
-    wb.save(filename + ".xlsx")
+    filename = file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}]"
+    wb.save("./scans/" + filename + ".xlsx")
+
+    saved_files_path = os.getcwd() + "\\scans\\" + filename
 
     console.log("Reached the target amount of people. Scan complete.")
     logging.log(logging.INFO, "Reached the target amount of people. Scan complete.")
     
     if ftp_upload_active:
-        upload_to_ftp(kingdom, filename)
+        upload_to_ftp(kingdom, saved_files_path)
     kill_adb()  # make sure to clean up adb server
     return
 
-def upload_to_ftp(kingdom,filename):
+def upload_to_ftp(kingdom,filepath):
     ftps = None
     try:
         # Connect to the server
@@ -960,7 +962,7 @@ def upload_to_ftp(kingdom,filename):
             return
 
     # Define the upload files
-    upload_files = [f'{filename}.xlsx', f'{filename}.json']
+    upload_files = [f'{filepath}.xlsx', f'{filepath}.json']
 
     # Open each file and use ftps.storbinary to upload
     for upload_file in upload_files:
