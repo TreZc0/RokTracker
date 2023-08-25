@@ -40,6 +40,7 @@ import tesserocr
 import rok_ui_positions as rok_ui
 import json
 import os
+import ftplib
 from tesserocr import PyTessBaseAPI, PSM, OEM
 from PIL import Image
 from dotenv import load_dotenv
@@ -59,28 +60,35 @@ start_date = ""
 new_scroll = True
 scan_abort = False
 bluestacks_device_name = "bst.instance.Nougat64"
+bluestacks_conf_path = "C:\\ProgramData\\BlueStacks_nxt\\bluestacks.conf"
+ftp_upload_active = False
 
-if "devicename" in os.environ:
-    bluestacks_device_name = os.getEnv("devicename")
+if ("ftp_upload_host" in os.environ):
+    ftp_upload_active = True
+    ftp_upload_host = os.getenv("ftphost") # note: TLS ftp required
+    ftp_upload_port = os.getenv("ftpport")
+    ftp_upload_user = os.getenv("ftpuser")
+    ftp_upload_pass = os.getenv("ftppass")
+
+if "device_name" in os.environ:
+    bluestacks_device_name = os.getenv("device_name")
+
+if "bluestacks_conf_path" in os.environ:
+    bluestacks_conf_path = os.getenv("bluestacks_conf_path")
     
 scan_times = []
-
 
 def random_delay() -> float:
     return random.random() * 0.1
 
-
 def get_remaining_time(remaining_govs: int) -> float:
     return (sum(scan_times, start=0) / len(scan_times)) * remaining_govs
-
 
 def get_bluestacks_port():
     # try to read port from bluestacks config
     try:
         dummy = "AmazingDummy"
-        with open(
-            "C:\\ProgramData\\BlueStacks_nxt\\bluestacks.conf"
-        ) as config_file:
+        with open(bluestacks_conf_path) as config_file:
             file_content = "[" + dummy + "]\n" + config_file.read()
         config = configparser.RawConfigParser()
         config.read_string(file_content)
@@ -904,21 +912,49 @@ def scan(
         file_name_prefix = "NEXT"
     else:
         file_name_prefix = "TOP"
-    wb.save(
-        "./scans/"
-        + file_name_prefix
-        + str(amount - j)
-        + "-"
-        + str(datetime.date.today())
-        + "-"
-        + kingdom
-        + f"-[{run_id}]"
-        + ".xlsx"
-    )
+
+    filename = "./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}]"
+    wb.save(filename + ".xlsx")
+
     console.log("Reached the target amount of people. Scan complete.")
     logging.log(logging.INFO, "Reached the target amount of people. Scan complete.")
+    
+    if ftp_upload_active:
+        upload_to_ftp(kingdom, filename)
     kill_adb()  # make sure to clean up adb server
     return
+
+def upload_to_ftp(kingdom,filename):
+    # Connect to the server
+    ftps = ftplib.FTP_TLS(ftp_upload_host, ftp_upload_user, ftp_upload_pass)
+
+    # Enable secure transfers
+    ftps.prot_p()
+
+    # Check directory and change to it or create it
+    dir_name = kingdom
+    file_list = []
+    ftps.retrlines('LIST', file_list.append)
+    for file in file_list:
+        if dir_name in file:
+            ftps.cwd(dir_name)
+            break
+    else:
+        ftps.mkd(dir_name)
+        ftps.cwd(dir_name)
+
+    # Define the upload files
+    upload_files = [f'{filename}.xlsx', f'{filename}.json']
+
+    # Open each file and use ftps.storbinary to upload
+    for upload_file in upload_files:
+        with open(upload_file, 'rb') as file:
+            ftps.storbinary(f'STOR {upload_file}', file)
+
+    # Quit the server
+    ftps.quit()
+
+    print('Files uploaded successfully!')
 
 def append_json(new_data, filename):
     with open(filename,'r+', encoding="utf-8") as file:
