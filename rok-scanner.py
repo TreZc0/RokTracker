@@ -65,10 +65,10 @@ ftp_upload_active = False
 
 if ("ftp_upload_host" in os.environ):
     ftp_upload_active = True
-    ftp_upload_host = os.getenv("ftphost") # note: TLS ftp required
-    ftp_upload_port = os.getenv("ftpport")
-    ftp_upload_user = os.getenv("ftpuser")
-    ftp_upload_pass = os.getenv("ftppass")
+    ftp_upload_host = os.getenv("ftp_upload_host") # note: TLS ftp required
+    ftp_upload_port = os.getenv("ftp_upload_port")
+    ftp_upload_user = os.getenv("ftp_upload_user")
+    ftp_upload_pass = os.getenv("ftp_upload_user")
 
 if "device_name" in os.environ:
     bluestacks_device_name = os.getenv("device_name")
@@ -925,31 +925,53 @@ def scan(
     return
 
 def upload_to_ftp(kingdom,filename):
-    # Connect to the server
-    ftps = ftplib.FTP_TLS(ftp_upload_host, ftp_upload_user, ftp_upload_pass)
+    ftps = None
+    try:
+        # Connect to the server
+        ftps = ftplib.FTP_TLS(ftp_upload_host, ftp_upload_user, ftp_upload_pass)
+    except ftplib.all_errors as e:
+        print(f'Failed to connect to FTP server: {e}')
+        return
 
-    # Enable secure transfers
-    ftps.prot_p()
+    try:
+        # Enable secure transfers
+        ftps.prot_p()
+    except ftplib.all_errors as e:
+        print(f'Error enabling secure transfers: {e}')
+        return
 
     # Check directory and change to it or create it
     dir_name = kingdom
-    file_list = []
-    ftps.retrlines('LIST', file_list.append)
-    for file in file_list:
-        if dir_name in file:
-            ftps.cwd(dir_name)
-            break
-    else:
-        ftps.mkd(dir_name)
+    try:
+        print(f'Change directory to {dir_name}')
         ftps.cwd(dir_name)
+    except ftplib.error_perm as e:
+        print(f'Error changing directory. Try creating directory {dir_name}: {e}')
+        
+        try:
+            ftps.mkd(dir_name)
+        except ftplib.all_errors as e:
+            print(f'Error creating directory {dir_name}: {e}')
+            return
+
+        try:
+            ftps.cwd(dir_name)
+        except ftplib.all_errors as e:
+            print(f'Error changing directory: {e}')
+            return
 
     # Define the upload files
     upload_files = [f'{filename}.xlsx', f'{filename}.json']
 
     # Open each file and use ftps.storbinary to upload
     for upload_file in upload_files:
-        with open(upload_file, 'rb') as file:
-            ftps.storbinary(f'STOR {upload_file}', file)
+        try:
+            with open(upload_file, 'rb') as file:
+                print(f'Uploading file {upload_file}')
+                ftps.storbinary(f'STOR {upload_file}', file)
+        except ftplib.all_errors as e:
+            print(f'Error uploading file {upload_file}: {e}')
+            return
 
     # Quit the server
     ftps.quit()
