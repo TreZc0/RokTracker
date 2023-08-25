@@ -659,7 +659,6 @@ def scan(
         "date":str(datetime.date.today()),
         "kingdom": kingdom,
         "amount": str(amount - j),
-        "job_profile": "Full Time",
         "players": []
     }        
     with open("./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
