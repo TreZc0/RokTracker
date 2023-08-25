@@ -615,3 +615,5 @@ gov_info.png
 position_images/
 tmp/
 manual_review/
+deps/
+scans/
