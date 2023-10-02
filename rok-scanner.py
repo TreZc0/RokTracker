@@ -299,18 +299,23 @@ def governor_scan(
 
     # nickname copy
     copy_try = 0
+    previously_copied_name = tk.Tk().clipboard_get()
+    
     while copy_try < 3:
         try:
             secure_adb_tap(rok_ui.tap_positions["name_copy"], port)
-            time.sleep(0.2)
+            time.sleep(0.35)
             gov_name = tk.Tk().clipboard_get()
+
+            if gov_name == previously_copied_name:
+                  raise Exception("New value is the same as the previous value in clipboard")
             break
         except:
             console.log("Name copy failed, retying")
             logging.log(logging.INFO, "Name copy failed, retying")
             copy_try = copy_try + 1
 
-    time.sleep(0.8 + random_delay())
+    time.sleep(0.85 + random_delay())
 
     secure_adb_screencap(port).save("gov_info.png")
     image = cv2.imread("gov_info.png")
