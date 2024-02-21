@@ -669,7 +669,7 @@ def scan(
         "amount": str(amount - j),
         "players": []
     }        
-    with open("./scans/" + file_name_prefix + str(amount - j) + "-" + start_date + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
+    with open("./scans/" + file_name_prefix + str(amount - j) + "-" + str(start_date) + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
         json.dump(base_info, outfile)
 
     stop = False
@@ -906,21 +906,21 @@ def scan(
             + file_name_prefix
             + str(amount - j)
             + "-"
-            + start_date
+            + str(start_date)
             + "-"
             + kingdom
             + f"-[{run_id}]"
             + ".xlsx"
         )
         
-        append_json(governor, "./scans/" + file_name_prefix + str(amount - j) + "-" + start_date + "-" + kingdom + f"-[{run_id}].json")
+        append_json(governor, "./scans/" + file_name_prefix + str(amount - j) + "-" + str(start_date) + "-" + kingdom + f"-[{run_id}].json")
 
     if resume:
         file_name_prefix = "NEXT"
     else:
         file_name_prefix = "TOP"
 
-    filename = file_name_prefix + str(amount - j) + "-" + start_date + "-" + kingdom + f"-[{run_id}]"
+    filename = file_name_prefix + str(amount - j) + "-" + str(start_date) + "-" + kingdom + f"-[{run_id}]"
     wb.save("./scans/" + filename + ".xlsx")
 
     saved_files_path = os.getcwd() + "\\scans\\" + filename
