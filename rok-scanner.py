@@ -666,7 +666,7 @@ def scan(
         "amount": str(amount - j),
         "players": []
     }        
-    with open("./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
+    with open("./scans/" + file_name_prefix + str(amount - j) + "-" + start_date + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
         json.dump(base_info, outfile)
 
     stop = False
@@ -873,7 +873,7 @@ def scan(
         table.add_row("Governor Helps", str(governor["helps"]))
         table.add_row("Governor Alliance", escape(governor["alliance"].rstrip()))
 
-        console.print(table)
+        # console.print(table)
 
         # Write results in excel file
         sheet1["A" + str(i + 2 - j)] = to_int_check(governor["id"])
@@ -903,21 +903,21 @@ def scan(
             + file_name_prefix
             + str(amount - j)
             + "-"
-            + str(datetime.date.today())
+            + start_date
             + "-"
             + kingdom
             + f"-[{run_id}]"
             + ".xlsx"
         )
         
-        append_json(governor, "./scans/" + file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}].json")
+        append_json(governor, "./scans/" + file_name_prefix + str(amount - j) + "-" + start_date + "-" + kingdom + f"-[{run_id}].json")
 
     if resume:
         file_name_prefix = "NEXT"
     else:
         file_name_prefix = "TOP"
 
-    filename = file_name_prefix + str(amount - j) + "-" + str(datetime.date.today()) + "-" + kingdom + f"-[{run_id}]"
+    filename = file_name_prefix + str(amount - j) + "-" + start_date + "-" + kingdom + f"-[{run_id}]"
     wb.save("./scans/" + filename + ".xlsx")
 
     saved_files_path = os.getcwd() + "\\scans\\" + filename
