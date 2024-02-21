@@ -299,8 +299,11 @@ def governor_scan(
 
     # nickname copy
     copy_try = 0
-    previously_copied_name = tk.Tk().clipboard_get()
-    
+    try:
+        previously_copied_name = tk.Tk().clipboard_get()
+    except tk.TclError:
+        previously_copied_name = ""
+
     while copy_try < 3:
         try:
             secure_adb_tap(rok_ui.tap_positions["name_copy"], port)
