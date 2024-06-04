@@ -550,7 +550,7 @@ def governor_scan(
 
     end_time = time.time()
 
-    print("Time needed for governor: " + str((end_time - start_time)))
+    print("Time needed for governor no. " + str(current_player) + ": " + str((end_time - start_time)))
     scan_times.append(end_time - start_time)
 
     return {
@@ -661,6 +661,8 @@ def scan(
         file_name_prefix = "NEXT"
     else:
         file_name_prefix = "TOP"
+
+    filename = str(start_date) + "-" + file_name_prefix + str(amount - j) + "-" + kingdom + f"-[{run_id}]"
         
     # Set up JSON
     base_info = {
@@ -669,7 +671,7 @@ def scan(
         "amount": str(amount - j),
         "players": []
     }        
-    with open("./scans/" + file_name_prefix + str(amount - j) + "-" + str(start_date) + "-" + kingdom + f"-[{run_id}].json", "w") as outfile:
+    with open("./scans/" + filename + ".json", "w") as outfile:
         json.dump(base_info, outfile)
 
     stop = False
@@ -901,26 +903,19 @@ def scan(
             file_name_prefix = "NEXT"
         else:
             file_name_prefix = "TOP"
-        wb.save(
-            "./scans/"
-            + file_name_prefix
-            + str(amount - j)
-            + "-"
-            + str(start_date)
-            + "-"
-            + kingdom
-            + f"-[{run_id}]"
-            + ".xlsx"
-        )
+
+        filename = str(start_date) + "-" + file_name_prefix + str(amount - j) + "-" + kingdom + f"-[{run_id}]"
+        wb.save("./scans/" + filename + ".xlsx")
         
-        append_json(governor, "./scans/" + file_name_prefix + str(amount - j) + "-" + str(start_date) + "-" + kingdom + f"-[{run_id}].json")
+        append_json(governor, "./scans/" + filename + ".json")
 
     if resume:
         file_name_prefix = "NEXT"
     else:
         file_name_prefix = "TOP"
 
-    filename = file_name_prefix + str(amount - j) + "-" + str(start_date) + "-" + kingdom + f"-[{run_id}]"
+    filename = str(start_date) + "-" + file_name_prefix + str(amount - j) + "-" + kingdom + f"-[{run_id}]"
+
     wb.save("./scans/" + filename + ".xlsx")
 
     saved_files_path = os.getcwd() + "\\scans\\" + filename
@@ -929,7 +924,12 @@ def scan(
     logging.log(logging.INFO, "Reached the target amount of people. Scan complete.")
     
     if ftp_upload_active:
-        upload_to_ftp(kingdom, saved_files_path)
+        if scan_abort:
+            forceUpload = input('Do you want to upload the results anyway? (y/n): ').lower().strip() == 'y'
+            if forceUpload:
+                upload_to_ftp(kingdom, saved_files_path)
+        else:
+            upload_to_ftp(kingdom, saved_files_path)
     kill_adb()  # make sure to clean up adb server
     return
 
